@@ -35,6 +35,9 @@ class RepoManager(ABC):
     def get_log(self, max_count: int = 50) -> List[Commit]: ...
 
     @abstractmethod
+    def get_graph_log(self, max_count: int = 200) -> str: ...
+
+    @abstractmethod
     def get_diff(self, file_path: Optional[str] = None, staged: bool = False) -> str: ...
 
     @abstractmethod

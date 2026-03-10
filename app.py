@@ -1,11 +1,10 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, DataTable
-from textual.widgets import Tree
+from textual.widgets import Header, Footer, Tree
 from textual.containers import Horizontal, Vertical
 from typing import Optional
 
 from core.repo_manager import RepoManager
-from widgets.commit_log import CommitLog
+from widgets.commit_graph import CommitGraph
 from widgets.file_status import FileStatusTree
 from widgets.diff_view import DiffView
 from screens.repo_picker import RepoPickerScreen
@@ -37,7 +36,7 @@ class GitGuiApp(App):
         with Horizontal(id="main-layout"):
             yield FileStatusTree(id="file-status")
             with Vertical(id="right-panel"):
-                yield CommitLog(id="commit-log")
+                yield CommitGraph(id="commit-graph")
                 yield DiffView(id="diff-view")
         yield Footer()
 
@@ -57,7 +56,7 @@ class GitGuiApp(App):
             return
         try:
             self.query_one(FileStatusTree).load_status(self._repo.get_status())
-            self.query_one(CommitLog).load_commits(self._repo.get_log())
+            self.query_one(CommitGraph).load_graph(self._repo.get_graph_log())
             self.query_one(DiffView).show_diff("")
         except Exception as e:
             self.notify(f"Refresh error: {e}", severity="error")
@@ -164,9 +163,8 @@ class GitGuiApp(App):
         except Exception as e:
             self.notify(f"Unstage failed: {e}", severity="error")
 
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    def on_commit_graph_commit_selected(self, event: CommitGraph.CommitSelected) -> None:
         if not self._repo:
             return
-        commit_hash = str(event.row_key.value)
-        diff = self._repo.get_commit_diff(commit_hash)
+        diff = self._repo.get_commit_diff(event.commit_hash)
         self.query_one(DiffView).show_diff(diff)

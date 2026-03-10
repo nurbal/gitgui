@@ -51,6 +51,15 @@ class RemoteRepo(RepoManager):
                 ))
         return files
 
+    def get_graph_log(self, max_count: int = 200) -> str:
+        fmt = "%x00%H%x00%h%x00%s%x00%an%x00%cd"
+        return self._git(
+            "log", "--graph", "--all",
+            f"--max-count={max_count}",
+            f"--pretty=format:{fmt}",
+            "--date=format:%Y-%m-%d %H:%M",
+        )
+
     def get_log(self, max_count: int = 50) -> List[Commit]:
         fmt = "%H|%h|%s|%an|%ci"
         out = self._git("log", f"--max-count={max_count}", f"--pretty=format:{fmt}")

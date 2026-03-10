@@ -21,7 +21,7 @@ Screen {
     layout: vertical;
 }
 
-CommitLog {
+CommitGraph {
     height: 1fr;
     border: solid $primary-darken-2;
 }
