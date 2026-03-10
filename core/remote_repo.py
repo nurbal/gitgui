@@ -52,7 +52,7 @@ class RemoteRepo(RepoManager):
         return files
 
     def get_graph_log(self, max_count: int = 200) -> str:
-        fmt = "%x00%H%x00%h%x00%s%x00%an%x00%cd"
+        fmt = "%x00%H%x00%h%x00%s%x00%an%x00%cd%x00%D"
         return self._git(
             "log", "--graph", "--all",
             f"--max-count={max_count}",

@@ -43,10 +43,41 @@ class _GraphEntry:
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
+def _color_decorations(raw: str) -> Text:
+    """
+    Color git decoration refs, e.g. "HEAD -> main, origin/main, tag: v1.0"
+    - HEAD -> branch  : bold red + bold green
+    - tag: ...        : bold yellow
+    - origin/...      : cyan
+    - local branch    : green
+    """
+    t = Text()
+    if not raw.strip():
+        return t
+    t.append(" (", style="dim")
+    for i, ref in enumerate(raw.split(", ")):
+        if i:
+            t.append(", ", style="dim")
+        ref = ref.strip()
+        if ref.startswith("HEAD -> "):
+            t.append("HEAD", style="bold red")
+            t.append(" -> ", style="dim")
+            t.append(ref[len("HEAD -> "):], style="bold green")
+        elif ref.startswith("tag: "):
+            t.append("tag: ", style="dim yellow")
+            t.append(ref[5:], style="bold yellow")
+        elif "/" in ref:
+            t.append(ref, style="cyan")
+        else:
+            t.append(ref, style="green")
+    t.append(")", style="dim")
+    return t
+
+
 def parse_graph_output(raw: str) -> List[_GraphEntry]:
     """
     Parse git log --graph output where commit lines contain \x00 separators.
-    Format used: --pretty=format:%x00%H%x00%h%x00%s%x00%an%x00%cd
+    Format used: --pretty=format:%x00%H%x00%h%x00%s%x00%an%x00%cd%x00%D
     """
     entries: List[_GraphEntry] = []
 
@@ -54,11 +85,18 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
         if '\x00' in line:
             null_idx = line.index('\x00')
             graph_prefix = line[:null_idx]
-            parts = line[null_idx + 1:].split('\x00', 4)
+            parts = line[null_idx + 1:].split('\x00', 5)
 
-            if len(parts) == 5:
-                full_hash, short_hash, message, author, date = parts
+            if len(parts) >= 5:
+                full_hash  = parts[0]
+                short_hash = parts[1]
+                message    = parts[2]
+                author     = parts[3]
+                date       = parts[4]
+                decoration = parts[5] if len(parts) > 5 else ""
+
                 t = _color_graph(graph_prefix)
+                t.append_text(_color_decorations(decoration))
                 t.append(f" {short_hash}", style="yellow")
                 t.append("  ")
                 msg = (message[:56] + "…") if len(message) > 56 else message

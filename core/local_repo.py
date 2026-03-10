@@ -35,7 +35,7 @@ class LocalRepo(RepoManager):
         return files
 
     def get_graph_log(self, max_count: int = 200) -> str:
-        fmt = "%x00%H%x00%h%x00%s%x00%an%x00%cd"
+        fmt = "%x00%H%x00%h%x00%s%x00%an%x00%cd%x00%D"
         try:
             return self.repo.git.log(
                 "--graph", "--all",
