@@ -7,7 +7,7 @@
 ### Tech stack chosen
 - **TUI framework:** `textual` (built on `rich`) — interactive widgets, mouse+keyboard, CSS-like layout
 - **Local Git:** `gitpython`
-- **SSH / remote Git:** `paramiko`
+- **SSH / remote Git:** `paramiko` → replaced by system `ssh` binary (see below)
 - **Package manager:** `uv` with `pyproject.toml`
 
 ### Project structure
@@ -19,8 +19,8 @@ gitgui/
 ├── core/
 │   ├── repo_manager.py       # Abstract base class (RepoManager, FileStatus, Commit)
 │   ├── local_repo.py         # gitpython backend
-│   ├── remote_repo.py        # paramiko SSH backend
-│   └── ssh_client.py         # SSH connection management (SSHClient, SSHConfig)
+│   ├── remote_repo.py        # subprocess ssh backend
+│   └── ssh_client.py         # SSH connectivity test via subprocess
 ├── widgets/
 │   ├── commit_log.py         # DataTable showing commit history
 │   ├── file_status.py        # Tree showing staged/unstaged files
@@ -54,3 +54,26 @@ gitgui/
 - Repo initialised, `.gitignore` set up (excludes `__pycache__`, `.venv`, `.claude/`)
 - Remote: `git@github.com:nurbal/gitgui.git`
 - Initial commit pushed to `main`
+
+---
+
+## 2026-03-10 — SSH config support & ProxyJump
+
+**Problem:** `paramiko` failed to connect to SSH config aliases (e.g. `vm-lab`) with
+`[Errno 8] nodename nor servname provided` because it doesn't fully support all
+`~/.ssh/config` directives (`Include`, `Match`, complex `ProxyJump` chains, certificates…).
+
+**Fix:** Dropped `paramiko` for command execution. All remote git operations now run via
+`subprocess` + the system `ssh` binary, which reads `~/.ssh/config` natively.
+
+### Changes
+- `core/ssh_client.py` — replaced with a lightweight connectivity test:
+  `ssh -o BatchMode=yes -o ConnectTimeout=10 <host> echo ok`
+- `core/remote_repo.py` — all git commands run as `ssh <host> git -C <path> <cmd>`
+- `screens/ssh_screen.py` — simplified to two fields only: **host alias** + **repo path**.
+  All auth, routing and jump hosts are handled transparently by the system SSH client.
+
+### Usage
+In the SSH dialog, entering just `vm-lab` and `/home/user/repo` is enough.
+Every setting in the matching `~/.ssh/config` block (hostname, user, port,
+IdentityFile, ProxyJump…) is applied automatically.
