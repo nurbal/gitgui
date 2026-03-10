@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 from typing import List, Optional
 from .repo_manager import RepoManager, FileStatus, Commit
@@ -6,7 +7,9 @@ from .repo_manager import RepoManager, FileStatus, Commit
 class RemoteRepo(RepoManager):
     def __init__(self, host: str, repo_path: str) -> None:
         self.host = host
-        self.repo_path = repo_path
+        # Replace ~ with $HOME so the remote shell expands it correctly.
+        # Single-quoting '~/foo' would prevent tilde expansion.
+        self._repo_path = repo_path.replace("~", "$HOME", 1)
 
     def _ssh(self, cmd: str) -> str:
         result = subprocess.run(
@@ -22,7 +25,10 @@ class RemoteRepo(RepoManager):
         return out
 
     def _git(self, *args: str) -> str:
-        return self._ssh(f"git -C '{self.repo_path}' {' '.join(args)}")
+        # shlex.quote each argument so pipes, spaces and special chars are safe.
+        # Double-quote the repo path so $HOME expands but spaces are handled.
+        quoted_args = " ".join(shlex.quote(a) for a in args)
+        return self._ssh(f'git -C "{self._repo_path}" {quoted_args}')
 
     def get_status(self) -> List[FileStatus]:
         out = self._git("status", "--porcelain")
@@ -66,7 +72,7 @@ class RemoteRepo(RepoManager):
         if staged:
             args.append("--cached")
         if file_path:
-            args.append(f"'{file_path}'")
+            args.append(file_path)
         return self._git(*args) or "(no changes)"
 
     def get_commit_diff(self, commit_hash: str) -> str:
@@ -80,14 +86,13 @@ class RemoteRepo(RepoManager):
         return self._git("branch", "--show-current") or "(detached HEAD)"
 
     def stage(self, path: str) -> None:
-        self._git("add", f"'{path}'")
+        self._git("add", path)
 
     def unstage(self, path: str) -> None:
-        self._git("reset", "HEAD", f"'{path}'")
+        self._git("reset", "HEAD", path)
 
     def commit(self, message: str) -> None:
-        escaped = message.replace("'", "'\\''")
-        self._git("commit", "-m", f"'{escaped}'")
+        self._git("commit", "-m", message)
 
     def checkout(self, branch: str) -> None:
         self._git("checkout", branch)
