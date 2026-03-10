@@ -117,3 +117,18 @@ New `screens/branch_screen.py` — opens with `Ctrl+B`.
 
 ### New API on RepoManager / LocalRepo / RemoteRepo
 `get_all_branches()`, `create_branch()`, `delete_branch()`, `merge()`, `rebase()`
+
+---
+
+## 2026-03-10 — Replace commit log with interactive history tree
+
+### What changed
+`CommitLog` (DataTable) replaced by `CommitGraph` (`widgets/commit_graph.py`), a `ListView`-based widget that renders `git log --graph --all` output as a colored ASCII tree.
+
+### How it works
+- Git is called with `--pretty=format:%x00%H%x00%h%x00%s%x00%an%x00%cd` — null bytes (`%x00`) act as field separators that never appear in graph characters.
+- Each output line is classified: lines containing `\x00` are commit lines; others are pure graph connectors.
+- Graph characters are colored with a cycling palette (cyan → magenta → green → yellow → blue for branch lanes).
+- Commit lines show: `<colored graph> <hash> <message> <author> <date>`
+- Navigation: arrow keys scroll the tree. **Enter or click** on a commit line loads its diff in the diff panel. Pure connector lines are navigable but produce no action (avoids SSH round-trips on every keypress).
+- `get_graph_log()` added to `RepoManager`, `LocalRepo`, and `RemoteRepo`.
