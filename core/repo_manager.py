@@ -19,6 +19,13 @@ class Commit:
     date: str
 
 
+@dataclass
+class Branch:
+    name: str
+    is_current: bool
+    is_remote: bool
+
+
 class RepoManager(ABC):
 
     @abstractmethod
@@ -37,6 +44,9 @@ class RepoManager(ABC):
     def get_branches(self) -> List[str]: ...
 
     @abstractmethod
+    def get_all_branches(self) -> List[Branch]: ...
+
+    @abstractmethod
     def get_current_branch(self) -> str: ...
 
     @abstractmethod
@@ -50,6 +60,18 @@ class RepoManager(ABC):
 
     @abstractmethod
     def checkout(self, branch: str) -> None: ...
+
+    @abstractmethod
+    def create_branch(self, name: str) -> None: ...
+
+    @abstractmethod
+    def delete_branch(self, name: str, force: bool = False) -> None: ...
+
+    @abstractmethod
+    def merge(self, branch: str) -> str: ...
+
+    @abstractmethod
+    def rebase(self, onto: str) -> str: ...
 
     @abstractmethod
     def pull(self) -> str: ...

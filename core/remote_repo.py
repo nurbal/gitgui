@@ -1,7 +1,7 @@
 import shlex
 import subprocess
 from typing import List, Optional
-from .repo_manager import RepoManager, FileStatus, Commit
+from .repo_manager import RepoManager, FileStatus, Commit, Branch
 
 
 class RemoteRepo(RepoManager):
@@ -82,6 +82,22 @@ class RemoteRepo(RepoManager):
         out = self._git("branch", "--list")
         return [b.strip().lstrip("* ") for b in out.splitlines() if b.strip()]
 
+    def get_all_branches(self) -> List[Branch]:
+        current = self.get_current_branch()
+        branches: List[Branch] = []
+
+        for line in self._git("branch", "--list").splitlines():
+            name = line.strip().lstrip("* ")
+            if name:
+                branches.append(Branch(name=name, is_current=(name == current), is_remote=False))
+
+        for line in self._git("branch", "-r", "--list").splitlines():
+            name = line.strip()
+            if name and "->" not in name:
+                branches.append(Branch(name=name, is_current=False, is_remote=True))
+
+        return branches
+
     def get_current_branch(self) -> str:
         return self._git("branch", "--show-current") or "(detached HEAD)"
 
@@ -96,6 +112,18 @@ class RemoteRepo(RepoManager):
 
     def checkout(self, branch: str) -> None:
         self._git("checkout", branch)
+
+    def create_branch(self, name: str) -> None:
+        self._git("branch", name)
+
+    def delete_branch(self, name: str, force: bool = False) -> None:
+        self._git("branch", "-D" if force else "-d", name)
+
+    def merge(self, branch: str) -> str:
+        return self._git("merge", branch)
+
+    def rebase(self, onto: str) -> str:
+        return self._git("rebase", onto)
 
     def pull(self) -> str:
         return self._git("pull")

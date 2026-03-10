@@ -1,6 +1,6 @@
 import git
 from typing import List, Optional
-from .repo_manager import RepoManager, FileStatus, Commit
+from .repo_manager import RepoManager, FileStatus, Commit, Branch
 
 
 class LocalRepo(RepoManager):
@@ -11,7 +11,6 @@ class LocalRepo(RepoManager):
     def get_status(self) -> List[FileStatus]:
         files: List[FileStatus] = []
 
-        # Staged changes vs HEAD
         try:
             for item in self.repo.index.diff("HEAD"):
                 files.append(FileStatus(
@@ -20,11 +19,9 @@ class LocalRepo(RepoManager):
                     status=item.change_type[0],
                 ))
         except git.BadName:
-            # Brand-new repo with no commits yet
             for key in self.repo.index.entries:
                 files.append(FileStatus(path=key[0], staged=True, status='A'))
 
-        # Unstaged changes
         for item in self.repo.index.diff(None):
             files.append(FileStatus(
                 path=item.a_path,
@@ -32,7 +29,6 @@ class LocalRepo(RepoManager):
                 status=item.change_type[0],
             ))
 
-        # Untracked files
         for path in self.repo.untracked_files:
             files.append(FileStatus(path=path, staged=False, status='?'))
 
@@ -71,6 +67,20 @@ class LocalRepo(RepoManager):
     def get_branches(self) -> List[str]:
         return [b.name for b in self.repo.branches]
 
+    def get_all_branches(self) -> List[Branch]:
+        current = self.get_current_branch()
+        branches: List[Branch] = []
+
+        for b in self.repo.branches:
+            branches.append(Branch(name=b.name, is_current=(b.name == current), is_remote=False))
+
+        for remote in self.repo.remotes:
+            for ref in remote.refs:
+                if not ref.name.endswith('/HEAD'):
+                    branches.append(Branch(name=ref.name, is_current=False, is_remote=True))
+
+        return branches
+
     def get_current_branch(self) -> str:
         try:
             return self.repo.active_branch.name
@@ -88,6 +98,18 @@ class LocalRepo(RepoManager):
 
     def checkout(self, branch: str) -> None:
         self.repo.git.checkout(branch)
+
+    def create_branch(self, name: str) -> None:
+        self.repo.create_head(name)
+
+    def delete_branch(self, name: str, force: bool = False) -> None:
+        self.repo.delete_head(name, force=force)
+
+    def merge(self, branch: str) -> str:
+        return self.repo.git.merge(branch)
+
+    def rebase(self, onto: str) -> str:
+        return self.repo.git.rebase(onto)
 
     def pull(self) -> str:
         return self.repo.git.pull()

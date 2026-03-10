@@ -35,7 +35,8 @@ DiffView {
 
 RepoPickerScreen,
 SSHScreen,
-CommitScreen {
+CommitScreen,
+BranchScreen {
     align: center middle;
     background: $background 70%;
 }
@@ -74,4 +75,39 @@ Input {
 Button {
     margin-top: 1;
     margin-right: 1;
+}
+
+/* ── Branch dialog ──────────────────────────────────── */
+
+#branch-dialog {
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    width: 72;
+    height: 36;
+}
+
+#branch-list {
+    height: 1fr;
+    border: solid $primary-darken-2;
+}
+
+#create-row {
+    height: auto;
+    margin-top: 1;
+}
+
+#create-row Input {
+    width: 1fr;
+}
+
+#action-row {
+    height: auto;
+    margin-top: 1;
+}
+
+#branch-status {
+    height: 1;
+    margin-top: 1;
+    color: $text-muted;
 }

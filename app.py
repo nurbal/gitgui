@@ -11,6 +11,7 @@ from widgets.diff_view import DiffView
 from screens.repo_picker import RepoPickerScreen
 from screens.ssh_screen import SSHScreen
 from screens.commit_screen import CommitScreen
+from screens.branch_screen import BranchScreen
 
 
 class GitGuiApp(App):
@@ -21,6 +22,7 @@ class GitGuiApp(App):
         ("ctrl+o", "open_local", "Open local"),
         ("ctrl+e", "open_ssh", "SSH connect"),
         ("ctrl+r", "refresh", "Refresh"),
+        ("ctrl+b", "branches", "Branches"),
         ("ctrl+k", "commit", "Commit"),
         ("ctrl+p", "push", "Push"),
         ("ctrl+l", "pull", "Pull"),
@@ -74,6 +76,21 @@ class GitGuiApp(App):
             return
         self._refresh_all()
         self.notify("Refreshed.", timeout=2)
+
+    def action_branches(self) -> None:
+        if not self._repo:
+            self.notify("No repository open.", severity="warning")
+            return
+        self.push_screen(BranchScreen(self._repo), callback=self._on_branch_result)
+
+    def _on_branch_result(self, changed: bool) -> None:
+        if changed:
+            self._refresh_all()
+            branch = self._repo.get_current_branch()
+            # Update subtitle with new branch name
+            parts = self.sub_title.split("  ", 1)
+            label = parts[1] if len(parts) > 1 else ""
+            self.sub_title = f" {branch}   {label}"
 
     def action_commit(self) -> None:
         if not self._repo:
