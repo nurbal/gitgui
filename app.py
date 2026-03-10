@@ -11,6 +11,7 @@ from screens.repo_picker import RepoPickerScreen
 from screens.ssh_screen import SSHScreen
 from screens.commit_screen import CommitScreen
 from screens.branch_screen import BranchScreen
+from screens.checkout_picker import CheckoutPickerScreen
 
 
 class GitGuiApp(App):
@@ -168,3 +169,34 @@ class GitGuiApp(App):
             return
         diff = self._repo.get_commit_diff(event.commit_hash)
         self.query_one(DiffView).show_diff(diff)
+
+    def on_commit_graph_checkout_requested(self, event: CommitGraph.CheckoutRequested) -> None:
+        if not self._repo:
+            return
+        refs = event.refs
+        if len(refs) == 0:
+            # No named refs → detached HEAD checkout
+            self._do_checkout(event.commit_hash)
+        elif len(refs) == 1:
+            self._do_checkout(refs[0])
+        else:
+            self.push_screen(
+                CheckoutPickerScreen(event.commit_hash, refs),
+                callback=self._on_checkout_picked,
+            )
+
+    def _on_checkout_picked(self, target: Optional[str]) -> None:
+        if target:
+            self._do_checkout(target)
+
+    def _do_checkout(self, target: str) -> None:
+        try:
+            self._repo.checkout(target)
+            self.notify(f"Checked out: {target}")
+            self._refresh_all()
+            branch = self._repo.get_current_branch()
+            parts = self.sub_title.split("  ", 1)
+            label = parts[1] if len(parts) > 1 else ""
+            self.sub_title = f" {branch}   {label}"
+        except Exception as e:
+            self.notify(f"Checkout failed: {e}", severity="error")

@@ -36,7 +36,8 @@ DiffView {
 RepoPickerScreen,
 SSHScreen,
 CommitScreen,
-BranchScreen {
+BranchScreen,
+CheckoutPickerScreen {
     align: center middle;
     background: $background 70%;
 }
@@ -78,6 +79,22 @@ Button {
 }
 
 /* ── Branch dialog ──────────────────────────────────── */
+
+#checkout-picker {
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    width: 60;
+    height: auto;
+    max-height: 40;
+}
+
+#ref-list {
+    height: auto;
+    max-height: 16;
+    border: solid $primary-darken-2;
+    margin-top: 1;
+}
 
 #branch-dialog {
     background: $surface;

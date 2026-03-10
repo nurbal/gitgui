@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from rich.text import Text
@@ -40,6 +40,7 @@ class _GraphEntry:
     display: Text
     commit_hash: Optional[str]  # None for pure graph lines
     is_head: bool = False
+    refs: List[str] = field(default_factory=list)  # checkout-able ref names
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -75,6 +76,28 @@ def _color_decorations(raw: str) -> Text:
     return t
 
 
+def _parse_refs(decoration: str) -> List[str]:
+    """
+    Extract checkout-able names from a git decoration string.
+    e.g. "HEAD -> main, origin/main, tag: v1.0"  →  ["main", "origin/main", "v1.0"]
+    Skips bare HEAD and */HEAD aliases.
+    """
+    refs: List[str] = []
+    if not decoration.strip():
+        return refs
+    for part in decoration.split(", "):
+        part = part.strip()
+        if part == "HEAD" or part.endswith("/HEAD"):
+            continue
+        if part.startswith("HEAD -> "):
+            refs.append(part[len("HEAD -> "):])
+        elif part.startswith("tag: "):
+            refs.append(part[5:])
+        else:
+            refs.append(part)
+    return refs
+
+
 def parse_graph_output(raw: str) -> List[_GraphEntry]:
     """
     Parse git log --graph output where commit lines contain \x00 separators.
@@ -97,6 +120,7 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
                 decoration = parts[5] if len(parts) > 5 else ""
 
                 is_head = "HEAD ->" in decoration
+                refs = _parse_refs(decoration)
 
                 t = _color_graph(graph_prefix)
                 t.append_text(_color_decorations(decoration))
@@ -106,7 +130,7 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
                 t.append(msg)
                 t.append(f"  {author}", style="dim green")
                 t.append(f"  {date}", style="dim")
-                entries.append(_GraphEntry(display=t, commit_hash=full_hash, is_head=is_head))
+                entries.append(_GraphEntry(display=t, commit_hash=full_hash, is_head=is_head, refs=refs))
                 continue
 
         # Pure graph / connector line
@@ -121,17 +145,32 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
 class CommitGraph(ListView):
     """Scrollable, interactive git history tree."""
 
+    BINDINGS = [("c", "checkout", "Checkout")]
+
     class CommitSelected(Message):
         def __init__(self, commit_hash: str) -> None:
             super().__init__()
             self.commit_hash = commit_hash
+
+    class CheckoutRequested(Message):
+        def __init__(self, commit_hash: str, refs: List[str]) -> None:
+            super().__init__()
+            self.commit_hash = commit_hash
+            self.refs = refs  # empty = detached HEAD only; 1 = direct; 2+ = needs picker
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._entries: List[_GraphEntry] = []
 
     def on_mount(self) -> None:
-        self.border_title = "History  [dim](Enter = show diff)[/dim]"
+        self.border_title = "History  [dim](Enter = diff · c = checkout)[/dim]"
+
+    def action_checkout(self) -> None:
+        idx = self.index
+        if idx is not None and 0 <= idx < len(self._entries):
+            entry = self._entries[idx]
+            if entry.commit_hash:
+                self.post_message(self.CheckoutRequested(entry.commit_hash, entry.refs))
 
     def load_graph(self, raw: str) -> None:
         self.clear()
