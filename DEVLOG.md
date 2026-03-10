@@ -168,3 +168,14 @@ Press `c` on any commit in the history tree:
 
 `_parse_refs()` normalises decoration strings: strips bare `HEAD` and `*/HEAD` aliases, unwraps `HEAD -> branch` and `tag: x` into plain names.
 After checkout the tree refreshes and the header subtitle updates to the new branch.
+
+---
+
+## 2026-03-10 — Fix checkout always giving detached HEAD
+
+**Root cause:** `git checkout origin/foo` puts git in detached HEAD mode.
+
+**Fix:** switched to `git switch` (available since git 2.23, vm-lab has 2.25.1):
+- `checkout(branch)` → `git switch branch` — DWIM mode auto-creates a local tracking branch when given a remote ref like `origin/foo`
+- New `checkout_detached(ref)` → `git switch --detach ref`
+- `_do_checkout()` in `app.py` detects raw commit hashes (4–40 hex chars) and routes them to `checkout_detached` with a "Detached HEAD" warning; all named refs use `checkout()`
