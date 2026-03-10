@@ -1,21 +1,28 @@
+import subprocess
 from typing import List, Optional
 from .repo_manager import RepoManager, FileStatus, Commit
-from .ssh_client import SSHClient
 
 
 class RemoteRepo(RepoManager):
-    def __init__(self, ssh_client: SSHClient, repo_path: str) -> None:
-        self.client = ssh_client
+    def __init__(self, host: str, repo_path: str) -> None:
+        self.host = host
         self.repo_path = repo_path
 
-    def _git(self, *args: str) -> str:
-        cmd = f"git -C '{self.repo_path}' {' '.join(args)}"
-        out, err = self.client.run(cmd)
-        out = out.strip()
-        if not out and err.strip():
-            # git pushes progress info to stderr; use it as fallback output
-            out = err.strip()
+    def _ssh(self, cmd: str) -> str:
+        result = subprocess.run(
+            ["ssh", self.host, cmd],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        out = result.stdout.strip()
+        err = result.stderr.strip()
+        if result.returncode != 0 and not out:
+            raise RuntimeError(err or f"Command failed (exit {result.returncode})")
         return out
+
+    def _git(self, *args: str) -> str:
+        return self._ssh(f"git -C '{self.repo_path}' {' '.join(args)}")
 
     def get_status(self) -> List[FileStatus]:
         out = self._git("status", "--porcelain")
@@ -26,16 +33,15 @@ class RemoteRepo(RepoManager):
             staged_char = line[0]
             unstaged_char = line[1]
             path = line[3:]
-            # Renames: "old -> new"
-            if ' -> ' in path:
-                path = path.split(' -> ')[-1]
-            if staged_char not in (' ', '?'):
+            if " -> " in path:
+                path = path.split(" -> ")[-1]
+            if staged_char not in (" ", "?"):
                 files.append(FileStatus(path=path, staged=True, status=staged_char))
-            if unstaged_char not in (' ', '\x00'):
+            if unstaged_char not in (" ", "\x00"):
                 files.append(FileStatus(
                     path=path,
                     staged=False,
-                    status='?' if unstaged_char == '?' else unstaged_char,
+                    status="?" if unstaged_char == "?" else unstaged_char,
                 ))
         return files
 
