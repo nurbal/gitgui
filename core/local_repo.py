@@ -109,7 +109,12 @@ class LocalRepo(RepoManager):
         self.repo.index.commit(message)
 
     def checkout(self, branch: str) -> None:
-        self.repo.git.checkout(branch)
+        # git switch has DWIM: `git switch origin/foo` automatically creates
+        # a local tracking branch `foo`, avoiding accidental detached HEAD.
+        self.repo.git.switch(branch)
+
+    def checkout_detached(self, ref: str) -> None:
+        self.repo.git.switch("--detach", ref)
 
     def create_branch(self, name: str) -> None:
         self.repo.create_head(name)

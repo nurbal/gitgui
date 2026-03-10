@@ -1,3 +1,5 @@
+import re
+
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Tree
 from textual.containers import Horizontal, Vertical
@@ -189,10 +191,18 @@ class GitGuiApp(App):
         if target:
             self._do_checkout(target)
 
+    _HASH_RE = re.compile(r'^[0-9a-f]{4,40}$')
+
     def _do_checkout(self, target: str) -> None:
         try:
-            self._repo.checkout(target)
-            self.notify(f"Checked out: {target}")
+            if self._HASH_RE.match(target):
+                # Raw commit hash → always detached HEAD, make it explicit
+                self._repo.checkout_detached(target)
+                self.notify(f"Detached HEAD at {target[:7]}", severity="warning")
+            else:
+                # Named ref (branch/tag) → git switch handles DWIM tracking
+                self._repo.checkout(target)
+                self.notify(f"Checked out: {target}")
             self._refresh_all()
             branch = self._repo.get_current_branch()
             parts = self.sub_title.split("  ", 1)

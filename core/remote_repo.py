@@ -120,7 +120,12 @@ class RemoteRepo(RepoManager):
         self._git("commit", "-m", message)
 
     def checkout(self, branch: str) -> None:
-        self._git("checkout", branch)
+        # git switch has DWIM: `git switch origin/foo` automatically creates
+        # a local tracking branch `foo`, avoiding accidental detached HEAD.
+        self._git("switch", branch)
+
+    def checkout_detached(self, ref: str) -> None:
+        self._git("switch", "--detach", ref)
 
     def create_branch(self, name: str) -> None:
         self._git("branch", name)

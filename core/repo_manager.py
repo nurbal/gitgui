@@ -65,6 +65,9 @@ class RepoManager(ABC):
     def checkout(self, branch: str) -> None: ...
 
     @abstractmethod
+    def checkout_detached(self, ref: str) -> None: ...
+
+    @abstractmethod
     def create_branch(self, name: str) -> None: ...
 
     @abstractmethod
