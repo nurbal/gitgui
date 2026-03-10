@@ -39,6 +39,7 @@ def _color_graph(prefix: str) -> Text:
 class _GraphEntry:
     display: Text
     commit_hash: Optional[str]  # None for pure graph lines
+    is_head: bool = False
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -95,6 +96,8 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
                 date       = parts[4]
                 decoration = parts[5] if len(parts) > 5 else ""
 
+                is_head = "HEAD ->" in decoration
+
                 t = _color_graph(graph_prefix)
                 t.append_text(_color_decorations(decoration))
                 t.append(f" {short_hash}", style="yellow")
@@ -103,7 +106,7 @@ def parse_graph_output(raw: str) -> List[_GraphEntry]:
                 t.append(msg)
                 t.append(f"  {author}", style="dim green")
                 t.append(f"  {date}", style="dim")
-                entries.append(_GraphEntry(display=t, commit_hash=full_hash))
+                entries.append(_GraphEntry(display=t, commit_hash=full_hash, is_head=is_head))
                 continue
 
         # Pure graph / connector line
@@ -133,8 +136,16 @@ class CommitGraph(ListView):
     def load_graph(self, raw: str) -> None:
         self.clear()
         self._entries = parse_graph_output(raw)
-        for entry in self._entries:
+        head_idx: Optional[int] = None
+        for i, entry in enumerate(self._entries):
             self.append(ListItem(Label(entry.display)))
+            if entry.is_head and head_idx is None:
+                head_idx = i
+        if head_idx is not None:
+            self.call_after_refresh(self._scroll_to_head, head_idx)
+
+    def _scroll_to_head(self, idx: int) -> None:
+        self.index = idx
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Fire CommitSelected only on Enter / click — avoids SSH round-trips on every arrow key."""
