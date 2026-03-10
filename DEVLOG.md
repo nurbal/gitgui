@@ -153,3 +153,18 @@ Decorations are colored inline, just before the short hash on each commit line:
 
 Added `is_head: bool` to `_GraphEntry`, set when the decoration contains `HEAD ->`.
 After `load_graph()` populates the `ListView`, `call_after_refresh` sets `ListView.index` to the HEAD entry so the view is centered on the current commit.
+
+---
+
+## 2026-03-10 — Checkout from history tree
+
+Press `c` on any commit in the history tree:
+
+| Refs on commit | Behaviour |
+|---|---|
+| None | Checkout by hash (detached HEAD) |
+| 1 ref | Checkout directly |
+| 2+ refs | `CheckoutPickerScreen` — scrollable list of refs, **Enter** or **Checkout selected**, plus a **Detached HEAD** fallback |
+
+`_parse_refs()` normalises decoration strings: strips bare `HEAD` and `*/HEAD` aliases, unwraps `HEAD -> branch` and `tag: x` into plain names.
+After checkout the tree refreshes and the header subtitle updates to the new branch.
