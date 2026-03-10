@@ -1,0 +1,11 @@
+[project]
+name = "gitgui"
+version = "0.1.0"
+description = "A terminal UI for Git with local and SSH remote support"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=0.47.0",
+    "gitpython>=3.1.40",
+    "paramiko>=3.4.0",
+]
+
