@@ -132,3 +132,17 @@ New `screens/branch_screen.py` — opens with `Ctrl+B`.
 - Commit lines show: `<colored graph> <hash> <message> <author> <date>`
 - Navigation: arrow keys scroll the tree. **Enter or click** on a commit line loads its diff in the diff panel. Pure connector lines are navigable but produce no action (avoids SSH round-trips on every keypress).
 - `get_graph_log()` added to `RepoManager`, `LocalRepo`, and `RemoteRepo`.
+
+---
+
+## 2026-03-10 — Branch labels and tags in history tree
+
+Added `%D` (decoration) as a 6th null-separated field in the git log format.
+Decorations are colored inline, just before the short hash on each commit line:
+
+| Ref type | Color |
+|---|---|
+| `HEAD -> branch` | bold red + bold green |
+| `tag: v1.0` | bold yellow |
+| `origin/branch` | cyan |
+| local branch | green |
