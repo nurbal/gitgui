@@ -146,3 +146,10 @@ Decorations are colored inline, just before the short hash on each commit line:
 | `tag: v1.0` | bold yellow |
 | `origin/branch` | cyan |
 | local branch | green |
+
+---
+
+## 2026-03-10 — Auto-scroll history tree to HEAD on load
+
+Added `is_head: bool` to `_GraphEntry`, set when the decoration contains `HEAD ->`.
+After `load_graph()` populates the `ListView`, `call_after_refresh` sets `ListView.index` to the HEAD entry so the view is centered on the current commit.
