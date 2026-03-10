@@ -77,3 +77,20 @@ gitgui/
 In the SSH dialog, entering just `vm-lab` and `/home/user/repo` is enough.
 Every setting in the matching `~/.ssh/config` block (hostname, user, port,
 IdentityFile, ProxyJump…) is applied automatically.
+
+---
+
+## 2026-03-10 — Fix remote git commands (tilde + shell quoting)
+
+**Problem:** Two bugs in `RemoteRepo._git()` caused a refresh error on SSH repos.
+
+1. **Tilde not expanded** — `git -C '~/SARC'` passes the literal string `~/SARC`
+   to git; single-quoting prevents shell tilde expansion.
+   **Fix:** replace `~` with `$HOME` and use double quotes: `git -C "$HOME/SARC"`.
+
+2. **Pipes in format string** — `git log --pretty=format:%H|%h|%s|%an|%ci`
+   has `|` chars that the remote shell interprets as pipes, splitting the command.
+   **Fix:** use `shlex.quote()` on every argument passed to `_git()`, so special
+   characters are safely escaped. Also removed all manual quoting scattered across methods.
+
+**Tested** against `vm-lab:~/SARC` — branch, status and commit log all work correctly.
