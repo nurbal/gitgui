@@ -94,3 +94,26 @@ IdentityFile, ProxyJump…) is applied automatically.
    characters are safely escaped. Also removed all manual quoting scattered across methods.
 
 **Tested** against `vm-lab:~/SARC` — branch, status and commit log all work correctly.
+
+---
+
+## 2026-03-10 — Branch manager dialog
+
+New `screens/branch_screen.py` — opens with `Ctrl+B`.
+
+### Features
+| Action | How |
+|---|---|
+| List branches | All local + remote branches shown on open |
+| Checkout | Select branch → **Checkout** button (or `c`) |
+| Create & checkout | Type name in input → **Create & checkout** |
+| Merge into current | Select branch → **Merge into current** |
+| Rebase onto | Select branch → **Rebase onto** |
+| Delete | Select local branch → **Delete** (guards against current/remote) |
+
+- Merge and rebase show output in the status line and keep the dialog open.
+- Checkout, create, and delete refresh the branch list in-place.
+- On close, the main view refreshes if anything changed, and the header subtitle updates to the new current branch.
+
+### New API on RepoManager / LocalRepo / RemoteRepo
+`get_all_branches()`, `create_branch()`, `delete_branch()`, `merge()`, `rebase()`
